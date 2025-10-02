@@ -1,4 +1,9 @@
-download(custom_path=oga_path)
+
+oga_path = f"/tmp/{tmp_id}.oga"
+    wav_path = f"/tmp/{tmp_id}.wav"
+    try:
+        tf = v.get_file()
+        tf.download(custom_path=oga_path)
         ogg_to_wav(oga_path, wav_path)
         text = wit_ai_stt(wav_path).strip()
         if not text:
@@ -17,38 +22,38 @@ download(custom_path=oga_path)
               f"• Сумма: {data['amount']}$\n"
               f"• Режим: {data['trade_mode']}\n"
               "(*ордер пока не отправляется — тест парсинга*)")
-    except Exception as e:
-        logging.exception("Ошибка голосовой обработки")
-        reply(update, f"Ошибка: {e}")
     finally:
         for p in (oga_path, wav_path):
-            try: os.remove(p)
-            except: pass
+            try:
+                os.remove(p)
+            except:
+                pass
 
-# --- Команды ---
 def start(update, context):
-    if not is_allowed(update): return
+    if not is_allowed(update):
+        return
     reply(update, "👋 Бот запущен.\nФормат: EURUSD OTC 1 вверх 40\nСуммы только: 40 / 100 / 220")
 
 def help_cmd(update, context):
-    if not is_allowed(update): return
+    if not is_allowed(update):
+        return
     reply(update, "Примеры:\nEURUSD OTC 1 вверх 40\nUSDJPY OTC 2 вниз 100\nGBPUSD OTC 3 вверх 220")
 
-def main():
+def run_bot():
+    updater = Updater(TELEGRAM_TOKEN, use_context=True)
+    dp = updater.dispatcher
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", help_cmd))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
+    dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
+    logging.info("Бот успешно запущен, слушает polling...")
+    updater.start_polling(drop_pending_updates=True, timeout=30)
+    updater.idle()
+
+if name == "__main__":
     while True:
         try:
-            updater = Updater(TELEGRAM_TOKEN, use_context=True)
-            dp = updater.dispatcher
-            dp.add_handler(CommandHandler("start", start))
-            dp.add_handler(CommandHandler("help", help_cmd))
-            dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
-            dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
-            logging.info("Бот запущен...")
-            updater.start_polling(drop_pending_updates=True, timeout=30)
-            updater.idle()
+            run_bot()
         except Exception:
-            logging.exception("Бот упал, перезапуск через 5 сек")
+            logging.exception("Бот упал — перезапуск через 5 сек")
             time.sleep(5)
-
-if __name__ == "__main__":
-    main()
